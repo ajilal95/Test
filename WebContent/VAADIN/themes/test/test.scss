@@ -1,0 +1,19 @@
+@import "../reindeer/reindeer.scss";
+
+@mixin test {
+	@include reindeer;
+
+	.mutiSelectBorder{
+		border-radius: 7px;
+	}
+	
+	.mItemLabelBold {
+		font-weight: bold;
+		line-height: normal;
+	}
+	
+	.mItemLabelNormal {
+		font-weight: normal;
+		line-height: normal;
+	}
+}
