@@ -34,7 +34,7 @@ public class TestUI extends UI {
 		layout.setSpacing(true);
 		setContent(layout);
 
-		Button button = new Button("Click Me");
+		Button button = new Button("Toggle child's selection mode");
 		layout.addComponent(button);
 		
 		Label parentLabel = new Label("Parent");
@@ -61,23 +61,11 @@ public class TestUI extends UI {
 		child.setCaptionStyleName("mItemLabelBold");
 		
 		parent.setChildMultiItemSelector(child);
+		child.setSingleItemSelection(true);
 		
 		button.addClickListener(new Button.ClickListener() {
 			public void buttonClick(ClickEvent event) {
-					parent.refresh();
-					String newName = "";
-					for(MItem mitem : parent.getMItem("Item 0").getSelectedChildren()){
-						newName += mitem.getMItemId();
-					}
-					button.setCaption(newName);
-			}
-		});
-		
-		parent.addMItemClickListener(new MItemClickListener() {
-			
-			@Override
-			public void action(MItemClickEvent event) {
-				button.setCaption("Clicked " + event.getCaption());
+					child.setSingleItemSelection(!child.isSingleItemSelectionEnabled());
 			}
 		});
 	}

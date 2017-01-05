@@ -31,16 +31,25 @@ public class MultiItemSelector extends VerticalLayout{
 	private MItem selectAllMItem = new MItem("Select all", "Select all");
 	private CheckBox selectAllCheckBox = selectAllMItem.getCheckBox();
 	
+	//Keeps track of number of selected items. Useful for the functionality of selectall
+	private int selections = 0;
+	
 	//To distinguish between ordinary MItem checkBox click an 'selectAll' checkBox click
-	private boolean enableSelectAllClickListener = true;
+	private boolean listeningToSelectAll = true;
+	
+	//To make the item select only one item a time
+	private boolean enableSingleSelection = false;
 	
 	//Keeps track of currently clicked MItem
-	private MItem alreadySelectedMItem = null;
+	private MItem clickedMItem = null;
+	
+	//Keeps track of last selected check box
+	private CheckBox lastClickedCheckBox = null;
 	
 	//Each MustiItemSelector can have a child
 	//Its componentDataSource will be populated by the parent
 	private MultiItemSelector child = null;
-	
+		
 	//Layout dimensions
 	private String auto = "-1px";
 	private String full = "100%";
@@ -88,11 +97,17 @@ public class MultiItemSelector extends VerticalLayout{
 
 			@Override
 			public void valueChange(ValueChangeEvent event) {
-				if(enableSelectAllClickListener){
+				if(listeningToSelectAll){
 					boolean selected = selectAllCheckBox.getValue();
 					
-					for(MItem container : componentDataSource.values()){
-						container.setSelected(selected);
+					for(MItem mItem : componentDataSource.values()){
+						mItem.setSelected(selected);
+					}
+					
+					if(selected){
+						MultiItemSelector.this.selections = componentDataSource.size();
+					} else {
+						MultiItemSelector.this.selections = 0;
 					}
 				}
 			}
@@ -109,8 +124,39 @@ public class MultiItemSelector extends VerticalLayout{
 		selectAllMItem.setCaptionStyleName(styleName);
 	}
 	
+	public boolean isSingleItemSelectionEnabled(){
+		return this.enableSingleSelection;
+	}
+	
+	public void setSingleItemSelection(boolean enable){
+		if(this.enableSingleSelection != enable){
+			changeSelectorMode(enable);
+		}
+	}
+	
+	public void changeSelectorMode(boolean enable){
+		if(enable){
+			//No need for selectall check box
+			//It will be automatically unchecked on unchecking mItems
+			this.selectAllMItem.getCheckBox().setVisible(false);
+			
+			//Keep the selections if there is at most one item selected else clear all selections
+			if(this.selections > 1){
+				for(MItem mItem : this.componentDataSource.values()){
+					mItem.setSelected(false);
+				}
+				this.selections = 0;
+			}
+		} else {
+			//need selectall check box
+			this.selectAllMItem.getCheckBox().setVisible(true);
+		}
+		
+		this.enableSingleSelection = enable;
+	}
 	public void refresh(){
 		mItemsLayout.removeAllComponents();
+		this.selections = 0;
 		boolean isAllSelected = true;
 		
 		for(MItem mItem : componentDataSource.values()){
@@ -124,12 +170,21 @@ public class MultiItemSelector extends VerticalLayout{
 			
 			mItemsLayout.addComponent(mItem.getMItemLayout());
 			
-			if(!mItem.isSelected()){
+			if(mItem.isSelected()){
+				//Don't be confused this assignment will be used only
+				//if selections == 1(Single item selected is the last checked one).
+				this.lastClickedCheckBox = mItem.getCheckBox();
+				this.selections++;
+			} else {
 				isAllSelected = false;
 			}
 		}
 		
 		selectAllMItem.setSelected(isAllSelected);
+		
+		if(this.selections != 1){
+			this.lastClickedCheckBox = null;
+		}
 	}
 	
 	public MItem addMItem(Object MItemId) throws IllegalArgumentException, IllegalStateException{
@@ -150,9 +205,9 @@ public class MultiItemSelector extends VerticalLayout{
 		mItem.getCheckBox().addValueChangeListener(new MItemSelectionListener(mItem));
 		
 		//Adding new item also means setting select all false
-		enableSelectAllClickListener = false;
+		listeningToSelectAll = false;
 		selectAllCheckBox.setValue(false);
-		enableSelectAllClickListener= true;
+		listeningToSelectAll= true;
 		
 		return mItem;
 	}
@@ -220,8 +275,8 @@ public class MultiItemSelector extends VerticalLayout{
 	
 	public void setChildMultiItemSelector(MultiItemSelector child){
 		this.child = child;
-		if(alreadySelectedMItem != null){
-			this.child.setComponentDataSource(alreadySelectedMItem.getChildDataSource());
+		if(clickedMItem != null){
+			this.child.setComponentDataSource(clickedMItem.getChildDataSource());
 		}
 	}
 	
@@ -236,12 +291,12 @@ public class MultiItemSelector extends VerticalLayout{
 	public void setCurrentMItem(Object mItemId){
 		MItem mItem = this.componentDataSource.get(mItemId);
 		if(mItem != null){
-			setAlreadySelectedMItem(mItem);
+			setClickedMItem(mItem);
 		}
 	}
 	
 	public MItem getCurrentMItem(){
-		return alreadySelectedMItem;
+		return clickedMItem;
 	}
 
 	public class MItem implements Serializable{
@@ -365,7 +420,7 @@ public class MultiItemSelector extends VerticalLayout{
 			
 			//Child needs to be refreshed if item is
 			//added through parent and the parent is the selected one
-			if(child != null && MultiItemSelector.this.alreadySelectedMItem == this){
+			if(child != null && MultiItemSelector.this.clickedMItem == this){
 				child.refresh();
 			}
 			return mItem;
@@ -430,7 +485,7 @@ public class MultiItemSelector extends VerticalLayout{
 
 		@Override
 		public void layoutClick(LayoutClickEvent event) {
-			setAlreadySelectedMItem(mItem);
+			setClickedMItem(mItem);
 			
 			//Firing event
 			MItemClickEvent clickEvent = new MItemClickEvent(mItem.getMItemId(), mItem.getCaption(), mItem.isSelected());
@@ -449,24 +504,43 @@ public class MultiItemSelector extends VerticalLayout{
 
 		@Override
 		public void valueChange(ValueChangeEvent event) {
-			//Unselecting any item is also unselecting selectAllCheckBox
-			if(!mItem.isSelected()){
-				enableSelectAllClickListener = false;
+			if(mItem.isSelected()){
+				//if single item selection is enabled then uncheck the current check box
+				if(enableSingleSelection){
+					if(lastClickedCheckBox != null){
+						lastClickedCheckBox.setValue(false);
+					}
+				}
+				
+				lastClickedCheckBox = mItem.getCheckBox();
+				
+				MultiItemSelector.this.selections++;
+				if(MultiItemSelector.this.selections == MultiItemSelector.this.componentDataSource.size()){
+					//Check selectall without the need to check the data MItems
+					listeningToSelectAll = false;
+					selectAllCheckBox.setValue(true);
+					listeningToSelectAll = true;
+				}
+			} else {
+				//Unselecting any item is also unselecting selectAllCheckBox
+				listeningToSelectAll = false;
 				selectAllCheckBox.setValue(false);
-				enableSelectAllClickListener = true;				
+				listeningToSelectAll = true;
+				
+				MultiItemSelector.this.selections--;
 			}
 		}
 		
 	}
 
-	private void setAlreadySelectedMItem(MItem newMItem) {
+	private void setClickedMItem(MItem newMItem) {
 		if(newMItem != null){
 			//Highlighting the currently selected MItem
-			if(alreadySelectedMItem != null){
-				alreadySelectedMItem.setCaptionStyleName(normalLabel);
+			if(clickedMItem != null){
+				clickedMItem.setCaptionStyleName(normalLabel);
 			}
 			newMItem.setCaptionStyleName(boldLabel);
-			alreadySelectedMItem = newMItem;
+			clickedMItem = newMItem;
 			
 			//Populating Child
 			if(MultiItemSelector.this.child != null){
