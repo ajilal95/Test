@@ -99,15 +99,10 @@ public class MultiItemSelector extends VerticalLayout{
 			public void valueChange(ValueChangeEvent event) {
 				if(MultiItemSelector.this.listeningToSelectAll){
 					boolean selected = MultiItemSelector.this.selectAllCheckBox.getValue();
-					
-					for(MItem mItem : MultiItemSelector.this.componentDataSource.values()){
-						mItem.setSelected(selected);
-					}
-					
 					if(selected){
-						MultiItemSelector.this.selections = componentDataSource.size();
+						selectAll();
 					} else {
-						MultiItemSelector.this.selections = 0;
+						unselectAll();
 					}
 				}
 			}
@@ -171,7 +166,7 @@ public class MultiItemSelector extends VerticalLayout{
 				this.mItemsLayout.addComponent(mItem.getMItemLayout());
 				
 				if(mItem.isSelected()){
-					//Don't be confused this assignment will be used only
+					//Don't be confused. This assignment will be used only
 					//if selections == 1(Single item selected is the last checked one).
 					lastCheckedCheckBox = mItem.getCheckBox();
 					
@@ -184,11 +179,30 @@ public class MultiItemSelector extends VerticalLayout{
 			isAllSelected = false;
 		}
 		
-		selectAllMItem.setSelected(isAllSelected);
-		
 		if(selections != 1){
+			if(enableSingleSelection){
+				unselectAll();
+			}
 			lastCheckedCheckBox = null;
 		}
+		
+		listeningToSelectAll = false;
+		selectAllMItem.setSelected(isAllSelected);
+		listeningToSelectAll = true;
+	}
+	
+	public void unselectAll(){
+		for(MItem mItem : componentDataSource.values()){
+			mItem.setSelected(false);
+		}
+		selections = 0;
+	}
+	
+	public void selectAll(){
+		for(MItem mItem : componentDataSource.values()){
+			mItem.setSelected(true);
+		}
+		selections = componentDataSource.size();
 	}
 	
 	public MItem addMItem(Object MItemId) throws IllegalArgumentException, IllegalStateException{

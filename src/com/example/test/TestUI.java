@@ -65,7 +65,8 @@ public class TestUI extends UI {
 		
 		button.addClickListener(new Button.ClickListener() {
 			public void buttonClick(ClickEvent event) {
-					child.setSingleItemSelection(!child.isSingleItemSelectionEnabled());
+				parent.refresh();
+				child.setSingleItemSelection(!child.isSingleItemSelectionEnabled());
 			}
 		});
 	}
