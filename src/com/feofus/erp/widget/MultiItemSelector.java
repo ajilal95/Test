@@ -180,10 +180,10 @@ public class MultiItemSelector extends VerticalLayout{
 		}
 		
 		if(selections != 1){
+			lastCheckedCheckBox = null;
 			if(enableSingleSelection){
 				unselectAll();
 			}
-			lastCheckedCheckBox = null;
 		}
 		
 		listeningToSelectAll = false;
