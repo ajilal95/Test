@@ -1,4 +1,4 @@
-package com.feofus.erp.widget;
+package com.widproj.widget;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -242,8 +242,11 @@ public class MultiItemSelector extends VerticalLayout{
 	}
 	
 	public void clear(){
-		componentDataSource.clear();
+		componentDataSource = new LinkedHashMap<>();
 		refresh();
+		if(child != null){
+			child.clear();
+		}
 	}
 	
 	public Map<Object, MItem> getComponentDataSource() {
@@ -430,8 +433,17 @@ public class MultiItemSelector extends VerticalLayout{
 			mItemLabel.setStyleName(styleName);
 		}
 		
-		protected Map<Object, MItem> getChildDataSource(){
+		public Map<Object, MItem> getChildDataSource(){
 			return this.childDataSource;
+		}
+		
+		public void setChildDataSource(Map<Object, MItem> childDataSource){
+			this.childDataSource = childDataSource;
+			if(MultiItemSelector.this != null
+					&& MultiItemSelector.this.child != null
+					&& MultiItemSelector.this.clickedMItem == this){
+				MultiItemSelector.this.child.refresh();
+			}
 		}
 		
 		public MItem addChildMItem(Object MItemId) throws IllegalArgumentException, IllegalStateException{
@@ -449,7 +461,9 @@ public class MultiItemSelector extends VerticalLayout{
 			
 			//Child needs to be refreshed if item is
 			//added through parent and the parent is the selected one
-			if(child != null && MultiItemSelector.this.clickedMItem == this){
+			if(MultiItemSelector.this != null 
+					&& MultiItemSelector.this.child != null 
+					&& MultiItemSelector.this.clickedMItem == this){
 				child.refresh();
 			}
 			return mItem;
@@ -461,7 +475,10 @@ public class MultiItemSelector extends VerticalLayout{
 		
 		public void removeChildMItem(Object mItemId){
 			MItem removedItem = this.childDataSource.remove(mItemId);
-			if(removedItem != null && MultiItemSelector.this.child != null){
+			if(removedItem != null
+					&& MultiItemSelector.this != null 
+					&& MultiItemSelector.this.child != null
+					&& MultiItemSelector.this.clickedMItem == this){
 				MultiItemSelector.this.child.refresh();
 			}
 		}

@@ -2,16 +2,15 @@ package com.example.test;
 
 import javax.servlet.annotation.WebServlet;
 
-import com.feofus.erp.widget.MultiItemSelector;
-import com.feofus.erp.widget.MultiItemSelector.MItem;
-import com.feofus.erp.widget.MultiItemSelector.MItemClickEvent;
-import com.feofus.erp.widget.MultiItemSelector.MItemClickListener;
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.VaadinServletConfiguration;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinServlet;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
+import com.widproj.widget.MultiItemSelector;
+import com.widproj.widget.MultiItemSelector.MItem;
+import com.widproj.widget.util.MitemJSONUtil;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
@@ -20,6 +19,7 @@ import com.vaadin.ui.VerticalLayout;
 @Theme("test")
 public class TestUI extends UI {
 	
+	private String json;
 	int count = 1;
 
 	@WebServlet(value = "/*", asyncSupported = true)
@@ -34,8 +34,11 @@ public class TestUI extends UI {
 		layout.setSpacing(true);
 		setContent(layout);
 
-		Button button = new Button("Toggle child's selection mode");
-		layout.addComponent(button);
+		Button deSerializeButton = new Button("De serialize");
+		layout.addComponent(deSerializeButton);
+		
+		Button serializeButton = new Button("Serialize");
+		layout.addComponent(serializeButton);
 		
 		Label parentLabel = new Label("Parent");
 		parentLabel.setStyleName("mItemLabelBold");
@@ -61,12 +64,18 @@ public class TestUI extends UI {
 		child.setCaptionStyleName("mItemLabelBold");
 		
 		parent.setChildMultiItemSelector(child);
-		child.setSingleItemSelection(true);
 		
-		button.addClickListener(new Button.ClickListener() {
+		serializeButton.addClickListener(new Button.ClickListener() {
 			public void buttonClick(ClickEvent event) {
-				parent.refresh();
-				child.setSingleItemSelection(!child.isSingleItemSelectionEnabled());
+				String json = MitemJSONUtil.getJSON(parent);
+				TestUI.this.json = json;
+			}
+		});
+		
+		deSerializeButton.addClickListener(new Button.ClickListener() {
+			public void buttonClick(ClickEvent event) {
+				MitemJSONUtil.populateMultiItemSelector(parent, json);
+				parent.setCurrentMItem("Item 1");
 			}
 		});
 	}
